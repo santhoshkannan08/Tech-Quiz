@@ -1,0 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base { body { @apply bg-slate-950 text-slate-100 antialiased; font-family: 'DM Sans', sans-serif; } h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; } }
+@layer components { .glass { @apply border border-white/10 bg-white/[0.06] backdrop-blur-xl; } .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-50; } }

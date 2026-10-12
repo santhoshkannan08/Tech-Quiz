@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+model Quiz {
+  id                   String        @id @default(cuid())
+  slug                 String        @unique
+  title                String
+  durationMinutes      Int           @default(15)
+  reviewEnabled        Boolean       @default(false)
+  publishedVersionId   String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  versions             QuizVersion[]
+  attempts             QuizAttempt[]
+}
+
+model QuizVersion {
+  id          String   @id @default(cuid())
+  quizId      String
+  version     Int
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  questions   QuizVersionQuestion[]
+  attempts    QuizAttempt[]
+  @@unique([quizId, version])
+  @@index([quizId, isPublished])
+}
+
+model Question {
+  id        String   @id
+  prompt    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  options   Option[]
+  versions  QuizVersionQuestion[]
+  attempts  AttemptQuestion[]
+  answers   ParticipantAnswer[]
+}
+
+model Option {
+  id         String   @id
+  questionId String
+  label      String
+  text       String
+  isCorrect  Boolean  @default(false)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  @@index([questionId])
+}
+
+model QuizVersionQuestion {
+  versionId  String
+  questionId String
+  position   Int
+  version    QuizVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  question   Question    @relation(fields: [questionId], references: [id])
+  @@id([versionId, questionId])
+  @@unique([versionId, position])
+}
+
+model QuizAttempt {
+  id                 String          @id @default(cuid())
+  token              String          @unique
+  quizId             String
+  versionId          String
+  participantName    String
+  participantId      String
+  status             AttemptStatus   @default(IN_PROGRESS)
+  deadline           DateTime
+  startedAt          DateTime        @default(now())
+  submittedAt        DateTime?
+  score              Int?
+  correctCount       Int?
+  incorrectCount     Int?
+  unansweredCount    Int?
+  questionOrder      String[]
+  quiz               Quiz            @relation(fields: [quizId], references: [id])
+  version            QuizVersion     @relation(fields: [versionId], references: [id])
+  questions          AttemptQuestion[]
+  answers            ParticipantAnswer[]
+  @@index([quizId, status])
+  @@index([participantId])
+}
+
+model AttemptQuestion {
+  id           String             @id @default(cuid())
+  attemptId    String
+  questionId   String
+  position     Int
+  optionOrder  String[]
+  startedAt    DateTime?
+  deadline     DateTime?
+  timedOutAt   DateTime?
+  attempt      QuizAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question     Question            @relation(fields: [questionId], references: [id])
+  answer       ParticipantAnswer?
+  @@unique([attemptId, questionId])
+  @@unique([attemptId, position])
+  @@index([attemptId, position])
+}
+
+model ParticipantAnswer {
+  id               String          @id @default(cuid())
+  attemptId        String
+  questionId       String
+  optionId         String?
+  answeredAt       DateTime        @default(now())
+  isCorrect        Boolean?
+  timeTakenMs      Int?
+  attempt          QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question        @relation(fields: [questionId], references: [id])
+  attemptQuestion  AttemptQuestion @relation(fields: [attemptId, questionId], references: [attemptId, questionId], onDelete: Cascade)
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
